@@ -1,0 +1,29 @@
+﻿@page
+@model RechercheInformation.Pages.VectorModel
+@{
+    ViewData["Title"] = "Vector Model";
+}
+
+<div class="text-center">
+    <h1>Search with Vector Model</h1>
+    <form method="get">
+        <label for="query">Enter your query:</label>
+        <input type="text" id="query" name="query" required>
+        <input type="submit" value="Search">
+    </form>
+
+    @if (Model.SearchResults != null && Model.SearchResults.Any())
+    {
+        <h2>Search Results:</h2>
+        <ul>
+            @foreach (var result in Model.SearchResults)
+            {
+                <li>@result</li>
+            }
+        </ul>
+    }
+    else if (!string.IsNullOrEmpty(Model.Query))
+    {
+        <p>No results found for "@Model.Query".</p>
+    }
+</div>
