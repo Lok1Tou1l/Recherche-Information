@@ -1,48 +1,208 @@
-﻿/* Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-for details on configuring this project to bundle and minify static web assets. */
-
-a.navbar-brand {
-  white-space: normal;
-  text-align: center;
-  word-break: break-all;
+﻿/* Reset defaults and ensure full coverage */
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: #1b2838;  /* Steam's signature dark blue */
 }
 
-a {
-  color: #0077cc;
+body {
+  color: #c6d4df;  /* Steam's default text color */
+  font-family: Arial, sans-serif;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-.btn-primary {
-  color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
-}
-
-.nav-pills .nav-link.active, .nav-pills .show > .nav-link {
-  color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
-}
-
-.border-top {
-  border-top: 1px solid #e5e5e5;
-}
-.border-bottom {
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.box-shadow {
-  box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
-}
-
-button.accept-policy {
-  font-size: 1rem;
-  line-height: inherit;
-}
-
-.footer {
-  position: absolute;
-  bottom: 0;
+/* Main content wrapper */
+.main-content {
+  flex: 1;
   width: 100%;
-  white-space: nowrap;
-  line-height: 60px;
+}
+
+/* Navbar styles */
+.navbar {
+  background: linear-gradient(to bottom, #171a21 0%, #1b2838 100%);
+  border-bottom: 1px solid #66c0f4;
+  padding: 15px;
+}
+
+.navbar-brand {
+  color: #c6d4df;
+  font-weight: bold;
+  font-size: 24px;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.navbar-brand:hover {
+  color: #66c0f4;
+  text-shadow: 0 0 10px rgba(102, 192, 244, 0.4);
+}
+
+.navbar-nav .nav-link {
+  color: #c6d4df;
+  font-size: 16px;
+  padding: 8px 15px;
+  transition: all 0.2s ease;
+}
+
+.navbar-nav .nav-link:hover {
+  color: #66c0f4;
+  background-color: rgba(102, 192, 244, 0.1);
+  border-radius: 2px;
+}
+
+/* Main content */
+.container {
+  margin-top: 30px;
+  margin-bottom: 30px;
+  background-color: rgba(27, 40, 56, 0.8);
+  padding: 20px;
+  border-radius: 3px;
+}
+
+h1, h2 {
+  font-size: 32px;
+  color: #ffffff;
+  text-align: left;
+  font-weight: 300;
+  margin-bottom: 20px;
+  text-transform: none;
+}
+
+/* Search form styling */
+form {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+/* Steam-styled input */
+.form-control.steam-input {
+  background-color: #316282;
+  border: 1px solid #2a475e;
+  color: #fff;
+  font-size: 16px;
+  border-radius: 2px;
+  padding: 8px 12px;
+  transition: all 0.2s ease;
+  width: 300px;
+  margin-right: 10px;
+}
+
+.form-control.steam-input:focus {
+  background-color: #3d7599;
+  border-color: #66c0f4;
+  box-shadow: none;
+  outline: none;
+}
+
+.form-control.steam-input::placeholder {
+  color: #8f98a0;
+}
+
+/* Submit button styling */
+input[type="submit"] {
+  background: linear-gradient(to bottom, #66c0f4 5%, #3b7fb6 95%);
+  color: white;
+  font-size: 16px;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+input[type="submit"]:hover {
+  background: linear-gradient(to bottom, #7cc5fb 5%, #448bc8 95%);
+}
+
+/* Search results styling */
+ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+ul li {
+  font-size: 16px;
+  color: #c6d4df;
+  margin-bottom: 12px;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+ul li:hover {
+  background-color: rgba(102, 192, 244, 0.1);
+  color: #ffffff;
+}
+
+/* Content sections */
+.content-section {
+  border: 1px solid #2a475e;
+  border-radius: 3px;
+  padding: 20px;
+  margin-bottom: 20px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Footer */
+footer {
+  background: linear-gradient(to bottom, #171a21 0%, #1b2838 100%);
+  color: #8f98a0;
+  text-align: center;
+  padding: 20px;
+  width: 100%;
+  font-size: 12px;
+  border-top: 1px solid #2a475e;
+  margin-top: auto;
+}
+
+footer a {
+  color: #66c0f4;
+  text-decoration: none;
+}
+
+footer a:hover {
+  color: #7cc5fb;
+  text-decoration: none;
+}
+
+/* Steam's scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #171a21;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #316282;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3d7599;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .form-control.steam-input {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+
+  form {
+    flex-direction: column;
+  }
+
+  input[type="submit"] {
+    width: 100%;
+  }
 }

@@ -1,11 +1,11 @@
-﻿@page
-@model RechercheInformation.Pages.VectorModel
+@page
+@model RechercheInformation.WeightedBoolean
 @{
-    ViewData["Title"] = "Vector Model Search";
+    ViewData["Title"] = "Weighted Boolean Search";
 }
 
 <div class="text-center">
-    <h1>Search with Vector Model</h1>
+    <h1>Weighted Boolean Search</h1>
     <form method="get">
         <label for="query">Enter your query:</label>
         <input type="text" 
@@ -24,10 +24,7 @@
         <ul>
             @foreach (var result in Model.SearchResults)
             {
-                <li>
-                    <strong> @result.Document  </strong>
-                     @result.Similarity
-                </li>
+                <li><strong>@result.Document</strong> - Score: @result.Score</li>
             }
         </ul>
     }

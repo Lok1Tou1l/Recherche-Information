@@ -5,11 +5,17 @@
 }
 
 <div class="text-center">
-    <h1>Boolean Search with Vector Model</h1>
+    <h1>Boolean Search </h1>
     <form method="get">
         <label for="query">Enter your query (use AND/OR):</label>
-        <input type="text" id="query" name="query" value="@Model.Query" required>
-        <input type="submit" value="Search">
+        <input type="text" 
+       id="query" 
+       name="query" 
+       class="form-control steam-input" 
+       value="@Model.Query" 
+       placeholder="Enter your query" 
+       required>
+        <input type="submit" value="Search" class="btn btn-lg btn-primary m-3">
     </form>
 
     @if (Model.SearchResults != null && Model.SearchResults.Any())
