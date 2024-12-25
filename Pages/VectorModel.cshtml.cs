@@ -1,8 +1,12 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace RechercheInformation.Pages
 {
@@ -12,38 +16,69 @@ namespace RechercheInformation.Pages
         private HashSet<string> vocabulary;
         private Dictionary<string, double> idfScores;
         private HashSet<string> stopwords = new HashSet<string> { "is", "and", "the", "for", "in", "on", "to", "a", "of" };
+        
+        [BindProperty]
+        public IFormFile DocumentUpload { get; set; }
+        
         public string Query { get; set; }
         public List<(string Document, double Similarity)> SearchResults { get; private set; } = new List<(string Document, double Similarity)>();
+        public List<string> UploadedDocuments { get; private set; } = new List<string>();
 
         public VectorModel()
         {
-            // Initialize documents
-            documents = new List<string>
-            {
-              "AI models are used in game development.",
-              "Game development involves AI techniques.",
-              "Python is widely used in AI and machine learning.",
-              "Game engines like Unity and Unreal offer tools for game development.",
-              "Machine learning algorithms help improve game AI.",
-              "Unity is a popular game development platform.",
-              "Artificial Intelligence is transforming various industries.",
-              "Data science and AI are closely related fields.",
-              "Deep learning is a subset of machine learning.",
-              "Unreal Engine is known for high-end graphics in games.",
-              "AI chatbots are used in customer service.",
-              "Video games can utilize procedural generation techniques.",
-              "Python is often used for data analysis and visualization.",
-              "Natural Language Processing (NLP) enables AI to understand human language.",
-              "Machine learning models can predict user behavior.",
-              "3D modeling and texturing are essential for game design.",
-              "Data-driven decisions are increasingly common in software development.",
-              "AI in healthcare is improving diagnostics and patient care.",
-              "Neural networks learn by training on large datasets.",
-              "Video game graphics rely on rendering techniques and shaders."
-            };
-
             BuildVocabulary();
             ComputeIDFScores();
+        }
+
+        public void OnGet()
+        {
+            // Initialize the page without search
+        }
+
+        public async Task<IActionResult> OnPostUploadAsync()
+        {
+            if (DocumentUpload != null && DocumentUpload.Length > 0)
+            {
+                // Limit file size to 5MB
+                if (DocumentUpload.Length > 5 * 1024 * 1024)
+                {
+                    ModelState.AddModelError("DocumentUpload", "File size cannot exceed 5MB.");
+                    return Page();
+                }
+
+                // Read the uploaded file
+                using (var reader = new StreamReader(DocumentUpload.OpenReadStream()))
+                {
+                    string content = await reader.ReadToEndAsync();
+                    
+                    // Add the document to the list
+                    documents.Add(content);
+                    UploadedDocuments.Add(DocumentUpload.FileName);
+                }
+
+                // Rebuild vocabulary and IDF scores
+                BuildVocabulary();
+                ComputeIDFScores();
+            }
+
+            return RedirectToPage();
+        }
+
+        public IActionResult OnPostSearch(string query)
+        {
+            Query = query;
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var queryVector = ComputeTFIDFVector(query);
+
+                SearchResults = documents
+                    .Select(doc => (Document: doc, Similarity: ComputeCosineSimilarity(queryVector, ComputeTFIDFVector(doc))))
+                    .Where(result => result.Similarity > 0)
+                    .OrderByDescending(result => result.Similarity)
+                    .ToList();
+            }
+
+            return Page();
         }
 
         private void BuildVocabulary()
@@ -128,21 +163,6 @@ namespace RechercheInformation.Pages
             if (magnitude1 == 0 || magnitude2 == 0) return 0;
 
             return dotProduct / (magnitude1 * magnitude2);
-        }
-
-        public void OnGet(string query)
-        {
-            Query = query;
-            if (!string.IsNullOrWhiteSpace(query))
-            {
-                var queryVector = ComputeTFIDFVector(query);
-
-                SearchResults = documents
-                    .Select(doc => (Document: doc, Similarity: ComputeCosineSimilarity(queryVector, ComputeTFIDFVector(doc))))
-                    .Where(result => result.Similarity > 0)
-                    .OrderByDescending(result => result.Similarity)
-                    .ToList();
-            }
         }
     }
 }

@@ -1,38 +1,58 @@
 ﻿@page
 @model RechercheInformation.Pages.VectorModel
 @{
-    ViewData["Title"] = "Vector Model Search";
+    ViewData["Title"] = "Document Search";
 }
 
-<div class="text-center">
-    <h1>Search with Vector Model</h1>
-    <form method="get">
-        <label for="query">Enter your query:</label>
-        <input type="text" 
-       id="query" 
-       name="query" 
-       class="form-control steam-input" 
-       value="@Model.Query" 
-       placeholder="Enter your query" 
-       required>
-        <input type="submit" value="Search" class="btn btn-lg btn-primary m-3">
+<div class="container">
+    <h1>Document Search</h1>
+
+    <!-- Document Upload Form -->
+    <form method="post" enctype="multipart/form-data" asp-page-handler="Upload">
+        <div class="form-group">
+            <label for="DocumentUpload">Upload Document:</label>
+            <input type="file" name="DocumentUpload" class="form-control-file" />
+            <button type="submit" class="btn btn-primary mt-2">Upload</button>
+        </div>
     </form>
 
-    @if (Model.SearchResults != null && Model.SearchResults.Any())
+    <!-- Uploaded Documents List -->
+    @if (Model.UploadedDocuments.Any())
     {
-        <h2>Search Results:</h2>
-        <ul>
-            @foreach (var result in Model.SearchResults)
-            {
-                <li>
-                    <strong> @result.Document  </strong>
-                     @result.Similarity
-                </li>
-            }
-        </ul>
+        <div class="mt-3">
+            <h3>Uploaded Documents:</h3>
+            <ul>
+                @foreach (var doc in Model.UploadedDocuments)
+                {
+                    <li>@doc</li>
+                }
+            </ul>
+        </div>
     }
-    else if (!string.IsNullOrEmpty(Model.Query))
+
+    <!-- Search Form -->
+    <form method="post" asp-page-handler="Search" class="mt-3">
+        <div class="form-group">
+            <label for="query">Search Query:</label>
+            <input type="text" name="query" class="form-control" value="@Model.Query" />
+            <button type="submit" class="btn btn-success mt-2">Search</button>
+        </div>
+    </form>
+
+    <!-- Search Results -->
+    @if (Model.SearchResults.Any())
     {
-        <p>No results found for "@Model.Query".</p>
+        <div class="mt-3">
+            <h3>Search Results:</h3>
+            <ul class="list-group">
+                @foreach (var result in Model.SearchResults)
+                {
+                    <li class="list-group-item">
+                        <strong>Similarity: @result.Similarity.ToString("F4")</strong>
+                        <p>@result.Document</p>
+                    </li>
+                }
+            </ul>
+        </div>
     }
 </div>

@@ -1,132 +1,133 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace RechercheInformation
 {
-    public class WeightedBoolean : PageModel
+    public class WeightedBooleanSearchModel : PageModel
     {
+        private const string DocumentStoragePath = "./DocumentStorage";
         private List<string> _documents = new List<string>();
         private Dictionary<string, double> _scores = new Dictionary<string, double>();
         private HashSet<string> _stopWords = new HashSet<string> { "is", "and", "the", "for", "in", "on", "to", "a", "of" };
+        
+        [BindProperty]
+        public IFormFile DocumentUpload { get; set; }
+        
         public string Query { get; set; }
         public List<(string Document, double Score)> SearchResults { get; set; } = new List<(string Document, double Score)>();
+        public List<string> AvailableDocuments { get; set; } = new List<string>();
 
-        public WeightedBoolean()
+        public WeightedBooleanSearchModel()
         {
-            // Initialize documents
-            _documents = new List<string>
-            {
-                "AI models are used in game development.",
-                "Game development involves AI techniques.",
-                "Python is widely used in AI and machine learning.",
-                "Game engines like Unity and Unreal offer tools for game development.",
-                "Machine learning algorithms help improve game AI.",
-                "Unity is a popular game development platform.",
-                "Artificial Intelligence is transforming various industries.",
-                "Data science and AI are closely related fields.",
-                "Deep learning is a subset of machine learning.",
-                "Unreal Engine is known for high-end graphics in games.",
-                "AI chatbots are used in customer service.",
-                "Video games can utilize procedural generation techniques.",
-                "Python is often used for data analysis and visualization.",
-                "Natural Language Processing (NLP) enables AI to understand human language.",
-                "Machine learning models can predict user behavior.",
-                "3D modeling and texturing are essential for game design.",
-                "Data-driven decisions are increasingly common in software development.",
-                "AI in healthcare is improving diagnostics and patient care.",
-                "Neural networks learn by training on large datasets.",
-                "Video game graphics rely on rendering techniques and shaders."
-            };
-
-            ComputeIDF();
-        }
-
-        private List<string> Tokenizer(string text)
-        {
-            if (string.IsNullOrEmpty(text)) return new List<string>();
+            // Ensure document storage directory exists
+            Directory.CreateDirectory(DocumentStoragePath);
             
-            text = text.ToLower();
-            return Regex.Split(text, @"\W+")
-                        .Where(token => !string.IsNullOrWhiteSpace(token) && !_stopWords.Contains(token))
-                        .ToList();
+            // Load existing documents
+            LoadDocuments();
         }
 
-        private void ComputeIDF()
+        private void LoadDocuments()
         {
-            _scores.Clear();
-            var docCount = _documents.Count;
+            _documents.Clear();
+            AvailableDocuments.Clear();
 
-            foreach (var doc in _documents)
+            // Load documents from storage
+            foreach (var file in Directory.GetFiles(DocumentStoragePath, "*.txt"))
             {
-                foreach (var term in Tokenizer(doc))
-                {
-                    if (!_scores.ContainsKey(term))
-                    {
-                        int docFrequency = _documents.Count(d => Tokenizer(d).Contains(term));
-                        _scores[term] = Math.Log10((double)docCount / (docFrequency + 1));
-                    }
-                }
+                string documentContent = System.IO.File.ReadAllText(file);
+                _documents.Add(documentContent);
+                AvailableDocuments.Add(Path.GetFileName(file));
+            }
+
+            // Compute IDF if documents exist
+            if (_documents.Any())
+            {
+                ComputeIDF();
             }
         }
 
-        private Dictionary<string, double> ComputeScores(string document)
+        public async Task<IActionResult> OnPostUploadAsync()
         {
-            var tokens = Tokenizer(document);
-            var tfidf = new Dictionary<string, double>();
-
-            foreach (var term in tokens)
+            if (DocumentUpload == null || DocumentUpload.Length == 0)
             {
-                if (_scores.ContainsKey(term))
-                {
-                    double tf = tokens.Count(t => t == term);
-                    double idf = _scores[term];
-                    tfidf[term] = tf * idf;
-                }
+                ModelState.AddModelError("DocumentUpload", "Please select a file to upload.");
+                return Page();
             }
 
-            return tfidf;
+            // Validate file type (optional: enforce .txt)
+            if (Path.GetExtension(DocumentUpload.FileName) != ".txt")
+            {
+                ModelState.AddModelError("DocumentUpload", "Only .txt files are allowed.");
+                return Page();
+            }
+
+            try
+            {
+                // Generate a unique filename
+                string fileName = $"{Guid.NewGuid()}_{DocumentUpload.FileName}";
+                string filePath = Path.Combine(DocumentStoragePath, fileName);
+
+                // Save the file
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await DocumentUpload.CopyToAsync(stream);
+                }
+
+                // Read and process the document
+                string documentContent = await System.IO.File.ReadAllTextAsync(filePath);
+                _documents.Add(documentContent);
+
+                // Recompute IDF after adding new document
+                ComputeIDF();
+
+                // Reload available documents
+                LoadDocuments();
+
+                return RedirectToPage();
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"File upload failed: {ex.Message}");
+                return Page();
+            }
         }
 
-        private double ComputeWeightedBoolean(Dictionary<string, double> queryVector, Dictionary<string, double> documentVector)
+        public IActionResult OnPostDeleteDocument(string fileName)
         {
-            double score = 0;
-            foreach (var term in queryVector.Keys)
+            if (string.IsNullOrEmpty(fileName))
             {
-                if (documentVector.ContainsKey(term))
-                {
-                    score += queryVector[term] * documentVector[term];
-                }
+                return RedirectToPage();
             }
-            return score;
+
+            try
+            {
+                string filePath = Path.Combine(DocumentStoragePath, fileName);
+                if (System.IO.File.Exists(filePath))
+                {
+                    System.IO.File.Delete(filePath);
+                }
+
+                // Reload documents
+                LoadDocuments();
+
+                return RedirectToPage();
+            }
+            catch (Exception)
+            {
+                return RedirectToPage();
+            }
         }
 
-        public List<(string Document, double Score)> WeightedBooleanSearch(string query)
-        {
-            var queryTokens = Tokenizer(query);
-            var queryVector = new Dictionary<string, double>();
-            foreach (var term in queryTokens)
-            {
-                queryVector[term] = _scores.ContainsKey(term) ? _scores[term] : 0;
-            }
-
-            var results = new List<(string Document, double Score)>();
-
-            foreach (var doc in _documents)
-            {
-                var documentVector = ComputeScores(doc);
-                double score = ComputeWeightedBoolean(queryVector, documentVector);
-
-                if (score > 0)
-                {
-                    results.Add((doc, score));
-                }
-            }
-
-            return results.OrderByDescending(r => r.Score).ToList();
-        }
+        // [Previous methods remain the same: Tokenizer, ComputeIDF, ComputeScores, ComputeWeightedBoolean, WeightedBooleanSearch]
+        // ... [Copy the previous implementation of these methods from the original code]
 
         public void OnGet(string query)
         {
@@ -136,5 +137,190 @@ namespace RechercheInformation
                 SearchResults = WeightedBooleanSearch(query);
             }
         }
+
+
+    /// <summary>
+/// Tokenizes input text into meaningful tokens
+/// </summary>
+/// <param name="text">Input text to tokenize</param>
+/// <returns>List of cleaned and processed tokens</returns>
+private List<string> Tokenizer(string text)
+{
+    // Handle null or empty input
+    if (string.IsNullOrEmpty(text)) 
+        return new List<string>();
+    
+    // Convert to lowercase to ensure case-insensitive matching
+    text = text.ToLower();
+    
+    // Use regex to split text into tokens
+    // \W+ matches one or more non-word characters (punctuation, spaces)
+    var tokens = Regex.Split(text, @"\W+")
+        .Where(token => 
+            // Filter out empty or whitespace tokens
+            !string.IsNullOrWhiteSpace(token) 
+            // Remove stop words
+            && !_stopWords.Contains(token))
+        .ToList();
+    
+    return tokens;
+}
+
+/// <summary>
+/// Computes Term Frequency (TF) for a document
+/// </summary>
+/// <param name="document">Document text</param>
+/// <returns>Dictionary of terms and their term frequencies</returns>
+private Dictionary<string, double> ComputeTermFrequency(string document)
+{
+    // Tokenize the document
+    var tokens = Tokenizer(document);
+    
+    // Create a term frequency dictionary
+    var termFrequency = new Dictionary<string, double>();
+    
+    foreach (var term in tokens)
+    {
+        // Count occurrences of each term
+        if (!termFrequency.ContainsKey(term))
+        {
+            // Count total occurrences of the term
+            termFrequency[term] = tokens.Count(t => t == term);
+        }
+    }
+    
+    // Normalize term frequencies (divide by total number of terms)
+    int totalTerms = tokens.Count;
+    foreach (var term in termFrequency.Keys.ToList())
+    {
+        termFrequency[term] /= totalTerms;
+    }
+    
+    return termFrequency;
+}
+
+/// <summary>
+/// Computes Inverse Document Frequency (IDF)
+/// </summary>
+private void ComputeIDF()
+{
+    // Clear previous IDF scores
+    _scores.Clear();
+    
+    // Total number of documents
+    int docCount = _documents.Count;
+    
+    // Iterate through all unique terms in all documents
+    var allTerms = _documents
+        .SelectMany(Tokenizer)
+        .Distinct()
+        .ToList();
+    
+    foreach (var term in allTerms)
+    {
+        // Count in how many documents the term appears
+        int documentFrequency = _documents.Count(doc => 
+            Tokenizer(doc).Contains(term));
+        
+        // Compute IDF using logarithmic formula
+        // log(Total Documents / (Documents with term + 1))
+        // +1 to avoid division by zero
+        double idf = Math.Log10((double)docCount / (documentFrequency + 1));
+        
+        // Store IDF score
+        _scores[term] = idf;
+    }
+}
+
+/// <summary>
+/// Computes TF-IDF scores for a document
+/// </summary>
+/// <param name="document">Document text</param>
+/// <returns>Dictionary of terms with their TF-IDF scores</returns>
+private Dictionary<string, double> ComputeTFIDF(string document)
+{
+    // Compute Term Frequency
+    var termFrequency = ComputeTermFrequency(document);
+    
+    // Create TF-IDF dictionary
+    var tfidfScores = new Dictionary<string, double>();
+    
+    foreach (var term in termFrequency.Keys)
+    {
+        // Multiply Term Frequency by Inverse Document Frequency
+        if (_scores.ContainsKey(term))
+        {
+            double tfIdfScore = termFrequency[term] * _scores[term];
+            tfidfScores[term] = tfIdfScore;
+        }
+    }
+    
+    return tfidfScores;
+}
+
+/// <summary>
+/// Compute weighted boolean search score
+/// </summary>
+/// <param name="queryVector">Query term vector</param>
+/// <param name="documentVector">Document term vector</param>
+/// <returns>Similarity score between query and document</returns>
+private double ComputeWeightedBoolean(
+    Dictionary<string, double> queryVector, 
+    Dictionary<string, double> documentVector)
+{
+    double score = 0;
+    
+    // Compute dot product of query and document vectors
+    foreach (var term in queryVector.Keys)
+    {
+        if (documentVector.ContainsKey(term))
+        {
+            // Multiply query term weight by document term weight
+            score += queryVector[term] * documentVector[term];
+        }
+    }
+    
+    return score;
+}
+
+/// <summary>
+/// Perform weighted boolean search
+/// </summary>
+/// <param name="query">Search query</param>
+/// <returns>Ranked search results</returns>
+public List<(string Document, double Score)> WeightedBooleanSearch(string query)
+{
+    // Tokenize query
+    var queryTokens = Tokenizer(query);
+    
+    // Create query vector with IDF weights
+    var queryVector = new Dictionary<string, double>();
+    foreach (var term in queryTokens)
+    {
+        // Use IDF score if available, otherwise 0
+        queryVector[term] = _scores.ContainsKey(term) ? _scores[term] : 0;
+    }
+    
+    var results = new List<(string Document, double Score)>();
+    
+    // Compute score for each document
+    foreach (var doc in _documents)
+    {
+        // Compute document vector with TF-IDF
+        var documentVector = ComputeTFIDF(doc);
+        
+        // Compute weighted boolean score
+        double score = ComputeWeightedBoolean(queryVector, documentVector);
+        
+        // Only add documents with non-zero relevance
+        if (score > 0)
+        {
+            results.Add((doc, score));
+        }
+    }
+    
+    // Return results sorted by relevance
+    return results.OrderByDescending(r => r.Score).ToList();
+}
     }
 }
