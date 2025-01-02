@@ -4,71 +4,145 @@
     ViewData["Title"] = "Weighted Boolean Search";
 }
 
-<div class="container">
-    <div class="row">
-        <div class="col-md-6">
-            <h3>Upload Document</h3>
-            <form method="post" enctype="multipart/form-data">
-                <div class="form-group">
-                    <input asp-for="DocumentUpload" class="form-control-file" />
-                </div>
-                <button type="submit" asp-page-handler="Upload" class="btn btn-primary">Upload</button>
-            </form>
-        </div>
-        <div class="col-md-6">
-            <h3>Search Documents</h3>
-            <form method="get">
-                <div class="input-group">
-                    <input type="text" name="query" class="form-control" placeholder="Enter search query" value="@Model.Query" />
-                    <div class="input-group-append">
-                        <button type="submit" class="btn btn-secondary">Search</button>
-                    </div>
-                </div>
-            </form>
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h1 class="display-4 mb-4">Document Search Engine</h1>
         </div>
     </div>
 
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <h3>Available Documents</h3>
-            @if (Model.AvailableDocuments.Any())
-            {
-                <ul class="list-group">
-                    @foreach (var doc in Model.AvailableDocuments)
-                    {
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            @doc
-                            <form method="post" class="d-inline">
-                                <input type="hidden" name="fileName" value="@doc" />
-                                <button type="submit" asp-page-handler="DeleteDocument" class="btn btn-danger btn-sm">Delete</button>
-                            </form>
-                        </li>
-                    }
-                </ul>
-            }
-            else
-            {
-                <p>No documents uploaded yet.</p>
-            }
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="get" class="mb-0">
+                        <div class="input-group input-group-lg">
+                            <input type="text" name="query" class="form-control" 
+                                   placeholder="Enter your search query..." 
+                                   value="@Model.Query"
+                                   aria-label="Search query" />
+                            <div class="input-group-append">
+                                <button type="submit" class="btn btn-primary px-4">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-        <div class="col-md-6">
-            <h3>Search Results</h3>
-            @if (Model.SearchResults.Any())
-            {
-                <ul class="list-group">
-                    @foreach (var result in Model.SearchResults)
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="h5 mb-0">Upload Documents</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" class="mb-4">
+                        <div class="form-group">
+                            <div class="custom-file">
+                                <input asp-for="DocumentUpload" class="custom-file-input" id="customFile" />
+                                <label class="custom-file-label" for="customFile">Choose file</label>
+                            </div>
+                            <small class="form-text text-muted">Supported formats: PDF, TXT</small>
+                        </div>
+                        <button type="submit" asp-page-handler="Upload" class="btn btn-primary btn-block mt-3">
+                            <i class="fas fa-upload"></i> Upload Document
+                        </button>
+                    </form>
+
+                    <h4 class="h6 mb-3">Available Documents</h4>
+                    @if (Model.AvailableDocuments.Any())
                     {
-                        <li class="list-group-item">
-                            <strong>Score: @result.Score.ToString("F4")</strong>
-                            <p>@result.Document</p>
-                        </li>
+                        <div class="list-group">
+                            @foreach (var doc in Model.AvailableDocuments)
+                            {
+                                <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <div class="text-truncate mr-2" title="@doc">
+                                        <i class="fas fa-file-alt mr-2"></i>
+                                        @doc
+                                    </div>
+                                    <form method="post" class="d-inline">
+                                        <input type="hidden" name="fileName" value="@doc" />
+                                        <button type="submit" asp-page-handler="DeleteDocument" 
+                                                class="btn btn-danger btn-sm" 
+                                                onclick="return confirm('Are you sure you want to delete this document?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                        </div>
                     }
-                </ul>
-            }
-            else if (!string.IsNullOrEmpty(Model.Query))
-            {
-                <p>No results found for your search.</p>
-            }
+                    else
+                    {
+                        <div class="text-center text-muted">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <p>No documents uploaded yet.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="h5 mb-0">Search Results</h3>
+                </div>
+                <div class="card-body">
+                    @if (Model.SearchResults.Any())
+                    {
+                        @foreach (var result in Model.SearchResults)
+                        {
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h5 class="mb-0">Relevance Score</h5>
+                                        <span class="badge badge-primary">@result.Score.ToString("F4")</span>
+                                    </div>
+                                    <p class="card-text text-justify mb-0">@result.Document</p>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else if (!string.IsNullOrEmpty(Model.Query))
+                    {
+                        <div class="text-center text-muted">
+                            <i class="fas fa-search fa-3x mb-3"></i>
+                            <p>No results found for your search.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted">
+                            <i class="fas fa-search fa-3x mb-3"></i>
+                            <p>Enter a search query to see results.</p>
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Custom file input label
+            $(".custom-file-input").on("change", function () {
+                var fileName = $(this).val().split("\\").pop();
+                $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+            });
+
+            // Add loading state to search
+            $('form').on('submit', function() {
+                $(this).find('button[type="submit"]').prop('disabled', true);
+                $(this).find('button[type="submit"] i').removeClass('fa-search fa-upload')
+                    .addClass('fa-spinner fa-spin');
+            });
+        });
+    </script>
+}
